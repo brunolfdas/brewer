@@ -81,7 +81,7 @@ public class FotoStorageS3 implements FotoStorage {
 	@Override
 	public String getUrl(String foto) {
 		if (!StringUtils.isEmpty(foto)) {
-			return "https://s3.us-east-1.amazonaws.com/brewer-bruno/" + foto;
+			return "https://s3.us-east-2.amazonaws.com/brewer-bruno/" + foto;
 		}
 		
 		return null;

@@ -8,14 +8,13 @@ package com.algaworks.brewer.config;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
-import javax.sql.DataSource;
+import javax.cache.Caching;
 
 import org.springframework.beans.BeansException;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.guava.GuavaCacheManager;
+import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.MessageSource;
@@ -34,10 +33,8 @@ import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.FixedLocaleResolver;
-import org.springframework.web.servlet.view.jasperreports.JasperReportsMultiFormatView;
-import org.springframework.web.servlet.view.jasperreports.JasperReportsViewResolver;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.extras.springsecurity4.dialect.SpringSecurityDialect;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -54,7 +51,6 @@ import com.algaworks.brewer.controller.converter.GrupoConverter;
 import com.algaworks.brewer.session.TabelasItensSession;
 import com.algaworks.brewer.thymeleaf.BrewerDialect;
 import com.github.mxab.thymeleaf.extras.dataattribute.dialect.DataAttributeDialect;
-import com.google.common.cache.CacheBuilder;
 
 import nz.net.ultraq.thymeleaf.LayoutDialect;
 
@@ -86,7 +82,7 @@ import nz.net.ultraq.thymeleaf.LayoutDialect;
 
 //habilita transações assincronas
 @EnableAsync
-public class WebConfig extends WebMvcConfigurerAdapter implements ApplicationContextAware {
+public class WebConfig implements ApplicationContextAware, WebMvcConfigurer  {
 
 	private ApplicationContext applicationContext;
 
@@ -95,18 +91,19 @@ public class WebConfig extends WebMvcConfigurerAdapter implements ApplicationCon
 		this.applicationContext = applicationContext;
 	}
 
+	//não é usado mais assim a partir do spring 5
 	//viewresolver para o jasper reports
-	@Bean
-	public ViewResolver jasperReportsViewResolver(DataSource dataSource) {
-		JasperReportsViewResolver resolver = new JasperReportsViewResolver();
-		resolver.setPrefix("classpath:/relatorios/");
-		resolver.setSuffix(".jasper");
-		resolver.setViewNames("relatorio_*");
-		resolver.setViewClass(JasperReportsMultiFormatView.class);
-		resolver.setJdbcDataSource(dataSource);
-		resolver.setOrder(0);
-		return resolver;
-	}
+//	@Bean
+//	public ViewResolver jasperReportsViewResolver(DataSource dataSource) {
+//		JasperReportsViewResolver resolver = new JasperReportsViewResolver();
+//		resolver.setPrefix("classpath:/relatorios/");
+//		resolver.setSuffix(".jasper");
+//		resolver.setViewNames("relatorio_*");
+//		resolver.setViewClass(JasperReportsMultiFormatView.class);
+//		resolver.setJdbcDataSource(dataSource);
+//		resolver.setOrder(0);
+//		return resolver;
+//	}
 	
 	// a viewResolver é o metodo que encontra e processa as paginas html
 	@Bean
@@ -185,18 +182,24 @@ public class WebConfig extends WebMvcConfigurerAdapter implements ApplicationCon
 	}
 	
 	@Bean
-	public CacheManager cacheManager() {
+	public CacheManager cacheManager() throws Exception {
 		//cach simples
 		//return new ConcurrentMapCacheManager();
 		
+		// o cache guava foi descontinuado a partir do spring 5
 		//cach avançado usando o Guava
-		CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder()
-				.maximumSize(3)
-				.expireAfterAccess(20, TimeUnit.SECONDS);
+//		CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder()
+//				.maximumSize(3)
+//				.expireAfterAccess(20, TimeUnit.SECONDS);
+//		
+//		GuavaCacheManager cacheManager = new GuavaCacheManager();
+//		cacheManager.setCacheBuilder(cacheBuilder);
+//		return cacheManager;
 		
-		GuavaCacheManager cacheManager = new GuavaCacheManager();
-		cacheManager.setCacheBuilder(cacheBuilder);
-		return cacheManager;
+		//---------metodo para cach usando o Jcache e o Ehcache 
+		return new JCacheCacheManager(Caching.getCachingProvider().getCacheManager(
+				getClass().getResource("/cache/ehcache.xml").toURI(),
+				getClass().getClassLoader()));
 	}
 	
 	@Bean
